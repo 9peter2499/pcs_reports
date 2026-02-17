@@ -1,5 +1,5 @@
 // =================================================================
-// PCS Test Case - Company Directory Script (View Detail Modal)
+// PCS Test Case - Company Directory Script (PDPA Compliant)
 // =================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -85,7 +85,52 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) { console.error(err); }
     }
 
-    // --- 3. Filter Logic ---
+    // --- 3. HELPER: PDPA Masking Functions (🔥 สำคัญ) ---
+    
+    // Mask เบอร์โทร: 0812345678 -> 081-xxx-5678
+    function maskPhone(phone) {
+        if (!phone) return '-';
+        // ลบขีดเดิมออกก่อน
+        const cleanPhone = phone.replace(/-/g, '').replace(/\s/g, '');
+        if (cleanPhone.length < 9) return phone; // เบอร์แปลกๆ ไม่ Mask
+        
+        // แสดง 3 ตัวหน้า - xxx - 4 ตัวหลัง
+        return cleanPhone.substring(0, 3) + '-xxx-' + cleanPhone.substring(cleanPhone.length - 4);
+    }
+
+    // Mask อีเมล: somchai@company.com -> s*****i@company.com
+    function maskEmail(email) {
+        if (!email) return '-';
+        const parts = email.split('@');
+        if (parts.length < 2) return email;
+
+        const name = parts[0];
+        const domain = parts[1];
+
+        if (name.length <= 2) {
+            return name[0] + '***@' + domain;
+        }
+        // เอาตัวแรกกับตัวสุดท้ายไว้ ตรงกลางเป็นดอกจัน
+        return name[0] + '*****' + name[name.length - 1] + '@' + domain;
+    }
+
+    // Mask ชื่อคน: สมชาย ใจดี -> คุณสมชาย จ. (หรือ สม***)
+    // ในบริบท Business Test Case อาจจะโชว์ชื่อจริงได้ แต่บังนามสกุล
+    function maskName(name) {
+        if (!name) return '-';
+        const parts = name.trim().split(/\s+/); // แยกเว้นวรรค
+        
+        if (parts.length > 1) {
+            // กรณีมีชื่อ-นามสกุล: สมชาย ใจดี -> สมชาย จ.
+            const firstName = parts[0];
+            const lastName = parts[1];
+            return `${firstName} ${lastName.substring(0, 1)}.`;
+        }
+        return name; // ถ้ามีพยางค์เดียวแสดงหมด
+    }
+
+
+    // --- 4. Filter Logic ---
     function applyFilters() {
         const searchTerm = searchInput.value.toLowerCase().trim();
         const selectedGroup = stakeholderFilter.value;
@@ -106,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCompanies(filtered);
     }
 
-    // --- 4. Render (Cards with Click Event) ---
+    // --- 5. Render Cards (Apply Masking) ---
     function renderCompanies(companies) {
         container.innerHTML = '';
         
@@ -120,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         container.style.display = 'flex';
 
         companies.forEach(com => {
-            // Badges for Card (Limit 2)
+            // Badges
             let groupsHtml = '';
             const links = com.stakeholder_company_links || [];
             if (links.length > 0) {
@@ -133,29 +178,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Card HTML (Added onclick)
-            // Note: We attach the click event to the whole card-body-custom wrapper or the card itself
+            // 🔥 Apply Masking for Card View
+            const displayContact = maskName(com.contact_person);
+            const displayMobile = maskPhone(com.contact_phone);
+            // เบอร์ Office ปกติเปิดเผยได้ แต่ถ้าอยาก Mask ก็ใช้ maskPhone(com.phone)
+            const displayOffice = com.phone || '-'; 
+
             const cardHtml = `
                 <div class="col-md-6 col-lg-4 col-xl-3">
                     <div class="directory-card h-100" onclick="openDetailModal('${com.company_id}')">
                         <div class="card-header-custom d-flex justify-content-between align-items-start">
                             <div class="text-truncate pe-2 w-100">
-                                <h7 class="company-name text-truncate" title="${com.company_name}">${com.company_name}</h7>
+                                <h6 class="company-name text-truncate" title="${com.company_name}">${com.company_name}</h6>
                                 <div class="mt-1">${groupsHtml}</div>
                             </div>
-                            <div class="text-muted"><i class="bi bi-eye"></i></div> </div>
+                            <div class="text-muted"><i class="bi bi-eye"></i></div> 
+                        </div>
                         <div class="card-body-custom">
                             <div class="info-row">
                                 <i class="bi bi-person info-icon"></i>
-                                <div class="text-truncate fw-medium text-dark">${com.contact_person || '-'}</div>
+                                <div class="text-truncate fw-medium text-dark">${displayContact}</div>
                             </div>
                             <div class="info-row">
                                 <i class="bi bi-phone info-icon"></i>
-                                <div>${com.contact_phone || '-'}</div>
+                                <div>${displayMobile}</div>
                             </div>
                             <div class="info-row">
                                 <i class="bi bi-building info-icon"></i>
-                                <div class="text-truncate">${com.phone || '-'}</div>
+                                <div class="text-truncate">${displayOffice}</div>
                             </div>
                             <div class="info-row mb-0">
                                 <i class="bi bi-pin-map info-icon"></i>
@@ -169,21 +219,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 5. Modal Logic (Global Function) ---
+    // --- 6. Modal Logic (Apply Masking) ---
     window.openDetailModal = (companyId) => {
         const com = allCompanies.find(c => String(c.company_id) === String(companyId));
         if (!com) return;
 
-        // 1. Basic Info
+        // Basic Info
         dName.textContent = com.company_name || '-';
-        dContactName.textContent = com.contact_person || '-';
-        dContactPhone.textContent = com.contact_phone || '-';
-        dEmail.textContent = com.email || '-';
         dPhone.textContent = com.phone || '-';
         dAddress.textContent = com.address || '-';
         dUpdated.textContent = com.updated_at ? new Date(com.updated_at).toLocaleString('th-TH') : '-';
 
-        // 2. Stakeholder Badges (Show All)
+        // 🔥 Apply Masking for Modal View
+        // (เลือกได้ว่าจะเปิดหมดใน Modal หรือจะ Mask ต่อ)
+        // เพื่อความปลอดภัยตามโจทย์ PDPA ผมจะ Mask ในนี้ด้วยครับ
+        dContactName.textContent = maskName(com.contact_person);
+        dContactPhone.textContent = maskPhone(com.contact_phone);
+        dEmail.textContent = maskEmail(com.email); 
+
+        // Stakeholder Badges
         dGroups.innerHTML = '';
         const links = com.stakeholder_company_links || [];
         if (links.length > 0) {
@@ -197,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dGroups.innerHTML = '<span class="text-muted small">ไม่ระบุกลุ่ม</span>';
         }
 
-        // 3. Map Button
+        // Map Button
         dMapContainer.innerHTML = '';
         if (com.map_link) {
             dMapContainer.innerHTML = `
