@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.redirectToTorPage = (moduleId) => {
         const filterState = { module: moduleId, search: '' };
         sessionStorage.setItem('torwtcFilters', JSON.stringify(filterState));
-        window.location.href = '/torwtc.html';
+        window.location.href = '/stk_torwtc.html';
     };
     
     // (ฟังก์ชัน exportToExcel ต้องมีอยู่แล้ว หรือถ้าไม่มีก็แปะเพิ่มได้ครับ)
