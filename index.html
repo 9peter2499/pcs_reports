@@ -5,45 +5,209 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - PCS Test Case</title>
 
-    <!-- CSS Links -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
     
-    <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
+    <style>
+        /* Dashboard Styles */
+        .stat-card {
+            background: #fff;
+            border: 1px solid #f0f0f0;
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.3s ease;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            border-color: #e0e0e0;
+        }
+        .icon-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 16px;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #2c3e50;
+            line-height: 1.2;
+        }
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .dashboard-section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #344767;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #0d6efd;
+            padding-left: 10px;
+        }
+    </style>
 </head>
 <body>
 
     <div class="app-container">
-
-        <!-- ✅ 1. ที่วางสำหรับ Header (จะถูกเติมโดย layout-loader.js) -->
         <header id="header-placeholder" class="app-header fixed-top"></header>
-
-        <!-- ✅ 2. ที่วางสำหรับ Sidebar (จะถูกเติมโดย layout-loader.js) -->
         <nav id="sidebar-placeholder" class="bg-white sidebar-hidden"></nav>
 
-        <!-- ===== MAIN CONTENT AREA (ส่วนนี้คือเนื้อหาเฉพาะของหน้านี้) ===== -->
         <main id="main-content" class="main-content-expanded">
             <div class="container-fluid pt-4 px-4 content-wrapper">
-                <img src="/images/HomePCS.png" class="images img-fluid opacity-50">
+                
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h4 class="fw-bold text-dark mb-0">Overview Dashboard</h4>
+                        <p class="text-muted small">ภาพรวมข้อมูลระบบ PCS Test Case</p>
+                    </div>
+                    <div id="last-update" class="text-muted small"></div>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6 col-xl-3">
+                        <div class="stat-card">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="stat-label">Total Systems</div>
+                                    <div class="stat-value" id="count-modules">-</div>
+                                    <div class="small text-muted mt-2">ระบบงานหลัก</div>
+                                </div>
+                                <div class="icon-box bg-primary-subtle text-primary">
+                                    <i class="bi bi-grid-fill"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="stat-card">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="stat-label">Total Screens</div>
+                                    <div class="stat-value" id="count-screens">-</div>
+                                    <div class="small text-muted mt-2">หน้าจอโปรแกรม (PCS Modules)</div>
+                                </div>
+                                <div class="icon-box bg-info-subtle text-info">
+                                    <i class="bi bi-window-desktop"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 col-xl-3">
+                        <div class="stat-card">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="stat-label">Registered Entities</div> <div class="stat-value" id="count-stakeholders">-</div>
+                                    <div class="small text-muted mt-2">บริษัทและหน่วยงานที่ลงทะเบียน</div>
+                                </div>
+                                <div class="icon-box bg-success-subtle text-success">
+                                    <i class="bi bi-buildings-fill"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-xl-3">
+                        <div class="stat-card">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="stat-label">Stakeholder Types</div> <div class="stat-value" id="count-groups">-</div> <div class="small text-muted mt-2">ประเภทกลุ่มผู้ใช้งานในระบบ</div>
+                                </div>
+                                <div class="icon-box bg-warning-subtle text-warning">
+                                    <i class="bi bi-tags-fill"></i> </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-lg-4">
+                        <h5 class="dashboard-section-title">Testing Progress</h5>
+                        
+                        <div class="card border-0 shadow-sm mb-3">
+                            <div class="card-body d-flex align-items-center p-3">
+                                <div class="icon-box bg-danger-subtle text-danger mb-0 me-3 rounded-circle" style="width: 50px; height: 50px;">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                </div>
+                                <div>
+                                    <div class="text-muted small fw-bold text-uppercase">Total TORs</div>
+                                    <div class="h3 fw-bold mb-0" id="count-tors">-</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card border-0 shadow-sm mb-3">
+                            <div class="card-body d-flex align-items-center p-3">
+                                <div class="icon-box bg-primary-subtle text-primary mb-0 me-3 rounded-circle" style="width: 50px; height: 50px;">
+                                    <i class="bi bi-list-check"></i>
+                                </div>
+                                <div>
+                                    <div class="text-muted small fw-bold text-uppercase">Test Cases</div>
+                                    <div class="h3 fw-bold mb-0" id="count-testcases">-</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body d-flex align-items-center p-3">
+                                <div class="icon-box bg-success-subtle text-success mb-0 me-3 rounded-circle" style="width: 50px; height: 50px;">
+                                    <i class="bi bi-check2-circle"></i>
+                                </div>
+                                <div>
+                                    <div class="text-muted small fw-bold text-uppercase">Scenarios</div>
+                                    <div class="h3 fw-bold mb-0" id="count-scenarios">-</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                                <h5 class="fw-bold text-primary mb-0">TORs Distribution</h5>
+                                <p class="text-muted small">จำนวน TOR แยกตามระบบงาน (Module)</p>
+                            </div>
+                            <div class="card-body px-4 pb-4">
+                                <div style="height: 300px; width: 100%;">
+                                    <canvas id="torChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
-            <footer class="app-footer">
+            <footer class="app-footer mt-5">
                 <div class="container-fluid">
                     <div class="d-flex justify-content-between">
-                        <span class="text-muted">© 2025 PCS : Test Case System</span>
-                        <span class="text-muted">Version 1.0.0</span>
+                        <span class="text-muted small">© 2026 PCS : Test Case System</span>
+                        <span class="text-muted small">Version 1.0.0</span>
                     </div>
                 </div>
             </footer>
         </main>
     </div>
 
-    <!-- ✅ 3. SCRIPT LINKS (เรียงลำดับให้ถูกต้อง) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/supabase-client.js"></script>
     <script src="/js/layout-loader.js"></script> 
