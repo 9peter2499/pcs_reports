@@ -110,14 +110,18 @@ document.addEventListener('DOMContentLoaded', () => {
         saveButton.disabled = true;
         saveButton.innerText = 'กำลังบันทึก...';
 
+        // ดึงค่าจาก Input
+        const phoneVal = phoneInput.value.trim();
+
         const profileData = {
             position: positionInput.value.trim(),
-            telephone: phoneInput.value.trim(),
+            // 🔥 แก้ตรงนี้: ถ้าเป็นค่าว่าง ให้ส่ง null ไปแทน
+            telephone: phoneVal === '' ? null : phoneVal, 
             full_name: fullNameInput.value,
             updated_at: new Date()
         };
 
-        // ถ้าเป็นโหมดลงทะเบียน ให้เพิ่ม company_id เข้าไปด้วย
+        // ... (โค้ดส่วน Company Logic เหมือนเดิม) ...
         if (pageMode === 'REGISTER') {
             if (!companySelect.value) {
                 alert('กรุณาเลือกบริษัท');
@@ -132,12 +136,15 @@ document.addEventListener('DOMContentLoaded', () => {
             .update(profileData).eq('id', currentUser.id);
 
         if (error) {
+            console.error(error); // ดู Error ใน Console F12
+            // แสดง Error ให้เห็นชัดๆ (User จะได้รู้ว่าติดตรงไหนถ้าแก้แล้วยังไม่ผ่าน)
             errorMessageDiv.innerText = `เกิดข้อผิดพลาด: ${error.message}`;
             errorMessageDiv.style.display = 'block';
+            
             saveButton.disabled = false;
             saveButton.innerText = 'บันทึกข้อมูล';
         } else {
-            alert('บันทึกข้อมูลสำเร็จ!');
+            // alert('บันทึกข้อมูลสำเร็จ!'); // ตัด alert ออกก็ได้ถ้าต้องการความลื่นไหล
             window.location.href = '/index.html'; 
         }
     }
