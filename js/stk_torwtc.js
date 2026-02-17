@@ -31,11 +31,15 @@ document.addEventListener('DOMContentLoaded', () => {
             let { data: tors, error: torError } = await supabaseClient
                 .from('TORs')
                 .select('tor_id, tor_name, Modules (module_id, module_name)')
+                .eq('module_id', urlModuleId) // 🔥 เพิ่ม Filter ตรงนี้เลยเพื่อความเร็ว
                 .order('tor_id');
+            
             if (torError) throw new Error(torError.message);
 
-            // 🔥 LOGIC SECURITY: กรองข้อมูลระดับ Database ให้เหลือเฉพาะที่ Group นี้มีสิทธิ์
+            // 🔥 LOGIC DUAL MODE:
             if (groupId) {
+                // [MODE 1] มี Group ID -> กรองเฉพาะที่กลุ่มนี้เกี่ยว
+                console.log("Mode: Stakeholder Filtered (Group ID provided)");
                 const { data: allowedLinks, error: linkErr } = await supabaseClient
                     .from('stakeholder_tor_links')
                     .select('tor_id')
@@ -45,13 +49,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     const allowedIds = new Set(allowedLinks.map(l => l.tor_id));
                     tors = tors.filter(t => allowedIds.has(t.tor_id));
                 } else {
-                    tors = []; // ถ้าดึงสิทธิ์ไม่ได้ ให้ไม่แสดงอะไรเลยเพื่อความปลอดภัย
+                    tors = [];
                 }
             } else {
-                console.warn('No Group ID provided - Access Denied');
-                tors = []; 
-                tordataContainer.innerHTML = '<div class="alert alert-warning m-4">ไม่พบรหัสกลุ่มผู้ใช้งาน (Group ID Missing)</div>';
-                return false;
+                // [MODE 2] ไม่มี Group ID -> แสดงทั้งหมด (Overview Mode)
+                console.log("Mode: Module Overview (No Group ID) - Showing ALL");
+                // ไม่ต้องทำอะไร ปล่อย tors ผ่านไปได้เลย
             }
 
             // 2. Fetch Links
@@ -247,10 +250,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 4. SETUP UI & EVENTS ---
 
     function setupBackButton() {
-        if (!groupId || !backBtn) return;
+        if (!backBtn) return; // ตัดเงื่อนไข !groupId ออก เพราะโหมด Overview ไม่มี group
         
+        const urlParams = new URLSearchParams(window.location.search);
+        const fromPage = urlParams.get('from');
+
         backBtn.onclick = () => {
-            window.location.href = `/stakeholder-detail.html?id=${groupId}`;
+            if (fromPage === 'module') {
+                window.location.href = `/modules.html`; // กลับไปหน้า Module Dashboard
+            } else if (groupId) {
+                window.location.href = `/stakeholder-detail.html?id=${groupId}`;
+            } else {
+                history.back(); // กันเหนียว
+            }
         };
         backBtn.style.display = 'inline-block';
     }
