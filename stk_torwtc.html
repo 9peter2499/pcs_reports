@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup: TORs & Test Cases</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+
+    <style>
+        /* --- Style สำหรับ Table แบบใหม่ (เลียนแบบ tcwrpt) --- */
+        .tor-header-row {
+            background-color: #f8f9fa; /* สีเทาอ่อนเหมือนหัวข้อ */
+            border-bottom: 2px solid #dee2e6;
+        }
+        .tor-number {
+            background-color: #e7f1ff;
+            color: #0d6efd;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: 8px;
+        }
+        .tor-content-row td {
+            vertical-align: middle;
+        }
+        /* Badge สำหรับ Phase */
+        .badge-phase-sit { background-color: #ffc107; color: #000; } /* เหลือง ตัวหนังสือดำ */
+        .badge-phase-uat { background-color: #0d6efd; color: #fff; } /* น้ำเงิน */
+        .badge-phase-unit { background-color: #6c757d; color: #fff; } /* เทาเข้ม */
+        .badge-phase-default { background-color: #adb5bd; color: #fff; } /* เทาอ่อน */
+        
+        
+        /* เส้นแบ่งบางๆ ระหว่าง Scenario */
+        .scenario-divider {
+            border-top: 1px solid #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header id="header-placeholder" class="app-header fixed-top"></header>
+        <nav id="sidebar-placeholder" class="bg-white sidebar-hidden"></nav>
+
+        <main id="main-content" class="main-content-expanded">
+            <div class="container-fluid pt-4 px-4 content-wrapper">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>TORs & Test Cases</h1>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <button id="btn-back-stakeholder" class="btn btn-outline-primary me-2">
+                        <i class="bi bi-arrow-left"></i> Back to Stakeholder
+                    </button>
+                </div>
+
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label for="module-filter" class="form-label fw-bold">ระบบงาน (Module)</label>
+                                <select id="module-filter" class="form-select form-select-sm">
+                                    <option value="all" selected>แสดงทุก Module</option>
+                                    </select>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <label for="phase-filter" class="form-label fw-bold">Test Phase</label>
+                                <select id="phase-filter" class="form-select form-select-sm">
+                                    <option value="all" selected>ทุก Phase</option>
+                                    <option value="SIT">SIT</option>
+                                    <option value="UAT">UAT</option>
+                                    <option value="UNIT">UNIT</option>
+                                    <option value="REGRESSION">REGRESSION</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-5">
+                                <label for="search-input" class="form-label fw-bold">ค้นหา (TOR / Test Name)</label>
+                                <div class="input-group input-group-sm"> 
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input type="text" id="search-input" class="form-control" placeholder="พิมพ์ชื่อ TOR หรือ Scenario...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-0">
+                        <div id="tordata-container" class="table-responsive">
+                             <table class="table mb-0" id="main-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 35%;">ข้อกำหนด (TOR)</th>
+                                        <th style="width: 15%;">Module</th>
+                                        <th style="width: 20%;">Test Objective</th>
+                                        <th style="width: 25%;">Test Name (Scenario)</th>
+                                        <th style="width: 5%;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-body">
+                                    <tr><td colspan="5" class="text-center p-5">กำลังโหลดข้อมูล...</td></tr>
+                                </tbody>
+                             </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal fade" id="linkScenarioModal" tabindex="-1" aria-labelledby="linkScenarioModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="linkScenarioModalLabel">กำลังจับคู่...</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-3 align-items-end">
+                        
+                        <div class="col-md-3">
+                            <label for="modal-phase-filter" class="form-label">Test Phase</label>
+                            <select id="modal-phase-filter" class="form-select form-select-sm">
+                                <option value="all" selected>ทุก Phase</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="modal-module-filter" class="form-label">Module หลัก</label>
+                            <select id="modal-module-filter" class="form-select form-select-sm">
+                                <option value="all" selected>ทุก Module หลัก</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="modal-submodule-filter" class="form-label">Sub Module</label>
+                            <select id="modal-submodule-filter" class="form-select form-select-sm" disabled>
+                                <option value="all" selected>ทุก Sub Module</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" id="modal-search-input" class="form-control" placeholder="ค้นหา Test Objective"> 
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive" style="max-height: 50vh;">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light sticky-top text-center">
+                                <tr>
+                                    <th style="width: 5%;"><input type="checkbox" class="form-check-input" id="modal-select-all"></th>
+                                    <th style="width: 25%;">Modules - Sub Modules</th>
+                                    <th style="width: 30%;">Test Objective</th>
+                                    <th style="width: 40%;">Test Name</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modal-scenarios-tbody">
+                                <tr><td colspan="4" class="text-center p-5">กำลังโหลด Scenarios...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <input type="hidden" id="modal-linking-tor-id"> <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-primary" id="save-links-btn">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
+                        บันทึกการจับคู่
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="linkScenarioModal" tabindex="-1" aria-labelledby="linkScenarioModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="linkScenarioModalLabel">กำลังจับคู่...</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-3 align-items-end">
+                        
+                        <div class="col-md-3">
+                            <label for="modal-phase-filter" class="form-label">Test Phase</label>
+                            <select id="modal-phase-filter" class="form-select form-select-sm">
+                                <option value="all" selected>ทุก Phase</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="modal-module-filter" class="form-label">Module หลัก</label>
+                            <select id="modal-module-filter" class="form-select form-select-sm">
+                                <option value="all" selected>ทุก Module หลัก</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="modal-submodule-filter" class="form-label">Sub Module</label>
+                            <select id="modal-submodule-filter" class="form-select form-select-sm" disabled>
+                                <option value="all" selected>ทุก Sub Module</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" id="modal-search-input" class="form-control" placeholder="ค้นหา Test Objective"> 
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive" style="max-height: 50vh;">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light sticky-top text-center">
+                                <tr>
+                                    <th style="width: 5%;"><input type="checkbox" class="form-check-input" id="modal-select-all"></th>
+                                    <th style="width: 25%;">Modules - Sub Modules</th>
+                                    <th style="width: 30%;">Test Objective</th>
+                                    <th style="width: 40%;">Test Name</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modal-scenarios-tbody">
+                                <tr><td colspan="4" class="text-center p-5">กำลังโหลด Scenarios...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <input type="hidden" id="modal-linking-tor-id"> <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-primary" id="save-links-btn">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
+                        บันทึกการจับคู่
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/supabase-client.js"></script>
+    <script src="/js/layout-loader.js"></script>
+    <script src="/js/index.js"></script>
+    
+    <script src="/js/stk_torwtc.js"></script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Management - PCS Test Case</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+
+    <style>
+        .company-card {
+            transition: all 0.2s;
+            border-left: 4px solid transparent;
+        }
+        .company-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+            border-left-color: #0d6efd;
+        }
+        .contact-info {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .contact-icon {
+            width: 20px;
+            text-align: center;
+            margin-right: 5px;
+            color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header id="header-placeholder" class="app-header fixed-top"></header>
+        <nav id="sidebar-placeholder" class="bg-white sidebar-hidden"></nav>
+
+        <main id="main-content" class="main-content-expanded">
+            <div class="container-fluid pt-4 px-4 content-wrapper">
+                
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="fw-bold mb-0">Company Directory</h2>
+                        <p class="text-muted small mb-0">จัดการข้อมูลบริษัทและผู้ติดต่อ</p>
+                    </div>
+                    <button class="btn btn-primary" id="add-company-btn">
+                        <i class="bi bi-building-add me-1"></i> เพิ่มบริษัทใหม่
+                    </button>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <!-- ส่วนที่ 1: ค้นหา (ทางซ้าย) -->
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                                    <input type="text" id="search-input" class="form-control border-start-0" placeholder="ค้นหาชื่อบริษัท, ผู้ติดต่อ, หรือเบอร์โทร...">
+                                </div>
+                            </div>
+            
+                            <!-- ส่วนที่ 2: Dropdown Filter (ทางขวา) -->
+                            <div class="col-md-4">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light fw-bold"><i class="bi bi-funnel"></i></span>
+                                    <select id="stakeholder-filter" class="form-select">
+                                        <option value="all" selected>ทุกกลุ่ม Stakeholder</option>
+                                        <!-- Options จะถูกเติมด้วย JS -->
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Company List Container -->
+                <div id="loading-indicator" class="text-center p-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+
+                <div id="companies-container" class="row g-4" style="display: none;">
+                    <!-- JS will render cards here -->
+                </div>
+
+                <div id="empty-state" class="text-center p-5" style="display: none;">
+                    <h5 class="text-muted">ไม่พบข้อมูลบริษัท</h5>
+                </div>
+
+            </div>
+            
+            <footer class="app-footer">
+                <div class="container-fluid">
+                    <span class="text-muted">© 2026 PCS Test Case System</span>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Modal: Add/Edit Company -->
+    <div class="modal fade" id="companyModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="companyModalLabel">Company Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="company-form">
+                        <input type="hidden" id="modal-company-id">
+                        
+                        <!-- Basic Info -->
+                        <h6 class="fw-bold text-primary mb-3">ข้อมูลทั่วไป (General Info)</h6>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="modal-name" class="form-label">ชื่อบริษัท <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="modal-name" required placeholder="ระบุชื่อบริษัทเต็ม">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="modal-email" class="form-label">อีเมลกลาง</label>
+                                <input type="email" class="form-control" id="modal-email" placeholder="contact@company.com">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="modal-phone" class="form-label">เบอร์โทรศัพท์</label>
+                                <input type="text" class="form-control" id="modal-phone" placeholder="02-xxx-xxxx">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="modal-address" class="form-label">ที่อยู่</label>
+                            <textarea class="form-control" id="modal-address" rows="2" placeholder="ที่อยู่สำนักงาน"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="modal-map" class="form-label">Google Map Link</label>
+                            <input type="url" class="form-control" id="modal-map" placeholder="https://maps.google.com/...">
+                        </div>
+
+                        <hr>
+
+                        <!-- Contact Person -->
+                        <h6 class="fw-bold text-primary mb-3">ผู้ติดต่อหลัก (Key Contact)</h6>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="modal-contact-name" class="form-label">ชื่อผู้ติดต่อ</label>
+                                <input type="text" class="form-control" id="modal-contact-name" placeholder="คุณ...">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="modal-contact-phone" class="form-label">เบอร์มือถือผู้ติดต่อ</label>
+                                <input type="text" class="form-control" id="modal-contact-phone" placeholder="08x-xxx-xxxx">
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Stakeholder Group Selection -->
+                        <h6 class="fw-bold text-primary mb-3">กลุ่ม Stakeholder (เลือกได้มากกว่า 1)</h6>
+                        <div class="p-3 bg-light border rounded" style="max-height: 200px; overflow-y: auto;">
+                            <div id="stakeholder-checks-container">
+                                <div class="text-center text-muted small">Loading groups...</div>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <div class="text-muted small" id="last-updated-text"></div>
+                    <div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="button" class="btn btn-primary" id="save-company-btn">บันทึกข้อมูล</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/supabase-client.js"></script>
+    <script src="/js/layout-loader.js"></script>
+    <script src="/js/index.js"></script>
+    <script src="/js/companies.js"></script>
+</body>
+</html>

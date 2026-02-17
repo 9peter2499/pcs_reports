@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile - PCS Test Case</title>
+    
+    <!-- CSS Links -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="form-container">
+        <div class="card form-card shadow-lg">
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <h2 class="mt-3" id="page-title">Loading...</h2>
+                    <p class="text-muted" id="page-subtitle"></p>
+                </div>
+
+                <form id="profile-form">
+                    <div class="form-group">
+                        <label for="full_name">ชื่อ-นามสกุล</label>
+                        <input type="text" id="full_name" class="form-control" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">อีเมล</label>
+                        <input type="email" id="email" class="form-control" readonly>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="position">ตำแหน่ง</label>
+                        <input type="text" id="position" class="form-control" placeholder="ระบุตำแหน่งงานของคุณ" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="company">บริษัท</label>
+                        <select id="company" class="form-select" required>
+                            <option value="" disabled selected>-- กรุณาเลือกบริษัท --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone_number">หมายเลขโทรศัพท์</label>
+                        <input type="tel" id="phone_number" class="form-control" placeholder="เช่น 0812345678">
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" id="save-profile-btn" class="btn save-btn btn-lg">
+                            บันทึกข้อมูล
+                        </button>
+                        <a href="/index.html" id="back-to-dashboard-btn" class="btn btn-outline-secondary" style="display: none;">กลับหน้าหลัก</a>
+                    </div>
+                </form>
+                <div id="error-message" class="alert alert-danger mt-3" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts (เรียงลำดับถูกต้อง) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/supabase-client.js"></script>
+    <script src="/js/setup-profile.js"></script> 
+</body>
+</html>

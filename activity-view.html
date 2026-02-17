@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity View - PCS Test Case</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+
+    <style>
+    /* Tabs Styling - One Row Fit */
+    .nav-pills-container {
+        background-color: #fff;
+        border-radius: 12px;
+        padding: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+    }
+    
+    .nav-pills {
+        display: flex;
+        flex-wrap: nowrap; /* ห้ามขึ้นบรรทัดใหม่ */
+        gap: 5px;
+        overflow-x: auto; /* เผื่อหน้าจอเล็ก */
+        scrollbar-width: none; /* ซ่อน Scrollbar */
+    }
+    .nav-pills::-webkit-scrollbar { display: none; }
+
+    .nav-pills .nav-link {
+        border-radius: 8px;
+        padding: 10px 15px;
+        color: #64748b;
+        font-weight: 500;
+        font-size: 0.9rem;
+        white-space: nowrap; /* ห้ามตัดคำ */
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+        flex-grow: 1; /* ขยายให้เต็มพื้นที่ */
+        text-align: center;
+    }
+    
+    .nav-pills .nav-link:hover {
+        background-color: #f1f5f9;
+        color: #334155;
+    }
+
+    .nav-pills .nav-link.active {
+        background-color: #eff6ff; /* สีฟ้าอ่อน */
+        color: #2563eb; /* สีน้ำเงินเข้ม */
+        border-color: #bfdbfe;
+        font-weight: 600;
+        box-shadow: none;
+    }
+
+    /* Activity Info Styling */
+    .activity-detail-list li {
+        margin-bottom: 12px;
+        line-height: 1.5;
+        font-size: 0.9rem;
+        color: #475569;
+        padding-bottom: 8px;
+        border-bottom: 1px dashed #e2e8f0;
+    }
+    .activity-detail-list li:last-child {
+        border-bottom: none;
+    }
+    
+    .role-card {
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid #e2e8f0;
+    }
+    .role-card:hover, .role-card.active {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border-color: #3b82f6;
+    }
+    .role-card.active {
+        background-color: #eff6ff;
+    }
+
+    /* Scroll Areas */
+    .scroll-area {
+        max-height: 70vh;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+    .scroll-area::-webkit-scrollbar { width: 4px; }
+    .scroll-area::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header id="header-placeholder" class="app-header fixed-top"></header>
+        <nav id="sidebar-placeholder" class="bg-white sidebar-hidden"></nav>
+
+        <main id="main-content" class="main-content-expanded">
+            <div class="container-fluid pt-4 px-4 content-wrapper">
+                
+                <!-- 1. Activity Tabs -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="fw-bold mb-0">Activity View</h4>
+                </div>
+                
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-body py-2">
+                        <!-- Tabs Container (Will be populated by JS) -->
+                        <ul class="nav nav-pills" id="activity-tabs" role="tablist">
+                            <li class="nav-item"><span class="nav-link disabled">Loading activities...</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 2. Main Content Grid (3 Columns) -->
+                <div class="row g-4">
+                    
+                    <!-- Column 1: Activity Info (Left) -->
+                    <div class="col-lg-3">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="p-2 bg-primary-subtle rounded-3 me-3 text-primary">
+                                        <i id="act-bg-icon" class="bi bi-activity fs-4"></i>
+                                    </div>
+                                    <h5 id="act-title" class="fw-bold text-dark mb-0">-</h5>
+                                </div>
+            
+                                <div class="section-header mb-3">รายละเอียดกิจกรรม</div>
+            
+                                <!-- ใช้ innerHTML เพื่อแสดงผล HTML List ที่เราเตรียมไว้ -->
+                                <div id="act-desc" class="small text-secondary">
+                                <!-- เนื้อหา HTML จะมาโผล่ตรงนี้ -->
+                                </div>
+            
+                                <!-- ลบส่วน alert scenarios เดิมออก เพราะเรารวมไปใน desc แล้ว -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Associated TORs (Center) -->
+                    <div class="col-lg-5">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                                    <div class="section-header mb-0 border-0 pb-0">Related TORs</div>
+                                    <span class="badge bg-primary-subtle text-primary-emphasis" id="tor-count">0 Items</span>
+                                </div>
+
+                                <div class="scroll-area" id="tor-list-container">
+                                    <div class="text-center text-muted p-5">Select an activity...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 3: Stakeholders & Tests (Right) -->
+                    <div class="col-lg-4">
+                        <!-- 3.1 Stakeholder Roles -->
+                        <div class="card shadow-sm border-0 mb-3" style="min-height: 250px;">
+                            <div class="card-body">
+                                <div class="section-header">Stakeholders & Roles</div>
+                                <div class="scroll-area" style="max-height: 250px;" id="stakeholder-roles-container">
+                                    <!-- Role Cards will go here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3.2 Companies (Dynamic based on selection) -->
+                        <div class="card shadow-sm border-0 mb-3" id="company-section" style="display:none;">
+                            <div class="card-body bg-light">
+                                <h6 class="fw-bold small text-muted mb-2">Companies in Selected Group:</h6>
+                                <div id="company-list-container" class="d-flex flex-wrap gap-1"></div>
+                            </div>
+                        </div>
+
+                        <!-- 3.3 Test Objectives -->
+                        <div class="card shadow-sm border-0">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="section-header mb-0 border-0 pb-0">Test Objectives (Test Cases)</div>
+                                    <span class="badge bg-secondary-subtle text-secondary-emphasis" id="tc-count">0</span>
+                                </div>
+                                <div class="scroll-area" style="max-height: 300px;" id="test-case-container">
+                                    <!-- Test Cases List -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div> <!-- End Row -->
+
+            </div>
+            
+            <footer class="app-footer">
+                <div class="container-fluid">
+                    <span class="text-muted">© 2026 PCS Test Case System</span>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/supabase-client.js"></script>
+    <script src="/js/layout-loader.js"></script>
+    <script src="/js/index.js"></script>
+    <script src="/js/activity-view.js"></script>
+</body>
+</html>

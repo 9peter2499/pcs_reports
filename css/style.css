@@ -1,0 +1,208 @@
+/* =================================================================
+   PCS Test Case - Main Stylesheet
+   ================================================================= */
+
+/* --- 1. GLOBAL & BODY STYLES --- */
+body {
+    font-family: 'Kanit', sans-serif;
+    background-color: #f0f2f5;
+    overflow-x: hidden;
+}
+
+
+/* --- 2. MAIN APP LAYOUT (ส่วนที่แก้ไข) --- */
+.app-container {
+    display: flex;
+}
+
+#sidebar-placeholder {
+    width: 280px; /* กำหนดความกว้างคงที่ */
+    min-width: 280px; /* ป้องกันการหดตัว */
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    padding-top: 56px;
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,.05);
+    background-color: #ffffff;
+    transition: margin-left 0.3s ease-in-out;
+}
+
+#main-content {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    width: 100%;
+    margin-left: 280px; /* 🎯 [แก้ไข] เว้นที่ให้ Sidebar */
+    padding-top: 56px;
+    transition: margin-left 0.3s ease-in-out;
+}
+
+/* Footer Styling */
+.content-wrapper {
+    flex-grow: 1;
+}
+.app-footer {
+    padding: 1rem 1.5rem;
+    background-color: #ffffff;
+    border-top: 1px solid #dee2e6;
+}
+
+
+/* --- 3. SIDEBAR & MENU STYLING --- */
+.nav-link {
+    color: #343a40;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    /* เพิ่ม white-space เพื่อป้องกันการตัดคำที่ไม่สวยงาม */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nav-link .bi {
+    color: #888;
+}
+
+.nav-link.active, .nav-link:hover {
+    color: #3f6ad8; /* Primary blue from template */
+    background-color: rgba(63, 106, 216, 0.05);
+}
+
+.nav-link.active {
+    font-weight: 600;
+}
+
+/* Submenu styling */
+.sub-menu {
+    padding-left: 3.5rem !important; /* Indent submenu items */
+    font-size: 0.9rem;
+    font-weight: 400;
+}
+
+/* Chevron icon rotation for collapsed menu */
+a[data-bs-toggle="collapse"][aria-expanded="true"] .bi-chevron-down {
+    transform: rotate(180deg);
+}
+a[data-bs-toggle="collapse"] .bi-chevron-down {
+    transition: transform 0.2s ease-in-out;
+}
+
+/* State when sidebar is hidden */
+.sidebar-hidden {
+    margin-left: -280px; /* ซ่อนไปทางซ้าย */
+}
+.main-content-expanded {
+    margin-left: 0 !important; /* ขยายเนื้อหาเต็มจอ */
+}
+
+
+/* --- 4. LOGIN & SETUP PROFILE PAGE STYLES --- */
+.login-container, .form-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.card.login-card {
+    max-width: 400px;
+}
+.card.form-card {
+    max-width: 500px; /* Wider card for forms */
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-control {
+    display: block;
+    width: 100%;
+    padding: 0.65rem 0.75rem;
+    font-size: 1rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    box-sizing: border-box;
+    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+
+.form-control:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.form-control[readonly] {
+    background-color: #e9ecef;
+}
+
+
+/* --- 5. BUTTON STYLES --- */
+.btn {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+/* Google Login Button */
+.google-btn {
+    background-color: #ffffff;
+    color: #444444;
+    border: 1px solid #dddddd;
+}
+
+.google-btn:hover {
+    background-color: #f7f7f7;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.google-btn .fa-google, .google-btn .bi-google {
+    margin-right: 0.5rem;
+    background: conic-gradient(from -45deg, #ea4335 110deg, #4285f4 90deg 180deg, #34a853 180deg 270deg, #fbbc05 270deg) 73% 55%/150% 150% no-repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Save Profile Button */
+.save-btn {
+    background-color: #3f6ad8;
+    color: #ffffff;
+    border: none;
+    font-weight: bold;
+}
+
+.save-btn:hover {
+    background-color: #2c4a99;
+}
+
+/* --- 6. PAGE-SPECIFIC STYLES: torwtc.html --- */
+
+#tordata-container .table {
+    /* [แก้ไขข้อ 1] จัด Header ให้อยู่ตรงกลาง */
+    & thead th {
+        text-align: center;
+        vertical-align: middle;
+    }
+    
+    /* [แก้ไขข้อ 4] กำหนดความกว้างคอลัมน์ปุ่ม + */
+    & .action-col {
+        width: 5%;
+        text-align: center;
+    }
+}
+

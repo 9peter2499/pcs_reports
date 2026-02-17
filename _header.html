@@ -1,0 +1,40 @@
+<nav class="navbar navbar-expand navbar-light bg-white shadow-sm">
+    <div class="container-fluid">
+        
+        <button class="btn btn-light me-2" id="sidebar-toggle-btn">
+            <i class="bi bi-list"></i>
+        </button>
+
+        <a class="navbar-brand" href="/index.html">PCS Test Case</a>
+
+        <!-- <form class="d-none d-md-flex ms-4 input-group input-group-sm" style="width: 300px;" role="search">
+            <input class="form-control" type="search" placeholder="Search..." aria-label="Search">
+            <button class="btn btn-outline-secondary" type="submit">
+                <i class="bi bi-search"></i>
+            </button>
+        </form> -->
+        
+        <ul class="navbar-nav ms-auto d-flex flex-row align-items-center">
+            
+            <!-- <li class="nav-item me-3">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-bell-fill fs-5"></i>
+                    <span class="badge rounded-pill bg-danger" style="position: absolute; top: 10px; font-size: 0.6em;">3</span>
+                </a>
+            </li> -->
+
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle me-1"></i>
+                    <span id="user-full-name" class="d-none d-sm-inline">Loading...</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                    <li><a class="dropdown-item" href="/setup-profile.html">Profile</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" id="logout-btn">Logout</a></li>
+                </ul>
+            </li>
+
+        </ul>
+    </div>
+</nav>
