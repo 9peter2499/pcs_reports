@@ -6,6 +6,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const container = document.getElementById('modules-container');
     const loadingState = document.getElementById('loading-state');
+    
+    // ตัวแปรเก็บ Group ID ของ User ปัจจุบัน (เพื่อส่งไปใน Link)
+    let currentUserGroupId = null;
 
     // --- 1. Initial Load ---
     async function init() {
@@ -13,7 +16,46 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Supabase client missing');
             return;
         }
+        
+        // 🔥 1. หา Group ID ของ User ก่อนโหลด Modules
+        await fetchCurrentUserGroup();
+        
+        // 2. โหลดข้อมูล Modules
         await loadModulesData();
+    }
+
+    // --- Helper: Find User's Group ---
+    async function fetchCurrentUserGroup() {
+        try {
+            // 1. Get Session
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) return; // Not logged in
+
+            // 2. Get Profile -> Company
+            const { data: profile } = await supabaseClient
+                .from('profiles')
+                .select('company_id')
+                .eq('id', session.user.id)
+                .single();
+
+            if (!profile || !profile.company_id) return;
+
+            // 3. Get Group from Company Link (เอาอันแรกที่เจอ)
+            const { data: links } = await supabaseClient
+                .from('stakeholder_company_links')
+                .select('group_id')
+                .eq('company_id', profile.company_id)
+                .limit(1)
+                .single();
+
+            if (links) {
+                currentUserGroupId = links.group_id;
+                console.log("Current User Group ID:", currentUserGroupId);
+            }
+
+        } catch (err) {
+            console.warn("Could not fetch user group:", err);
+        }
     }
 
     // --- 2. Data Fetching & Processing ---
@@ -21,32 +63,26 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             console.log('--- Starting Data Load ---');
 
-            // 1. ดึง Master Modules (12 ระบบ)
+            // 1. ดึง Master Modules
             const { data: modules, error: modError } = await supabaseClient
                 .from('Modules')
                 .select('module_id, module_name')
                 .order('module_id');
             if (modError) throw modError;
-            console.log(`Loaded ${modules.length} Modules`);
 
-            // 2. ดึง TORs ทั้งหมด
+            // 2. ดึง TORs
             const { data: torsData, error: torError } = await supabaseClient
                 .from('TORs')
                 .select('module_id, tor_id');
             if (torError) throw torError;
-            console.log(`Loaded ${torsData.length} TORs`);
 
-            // 3. ดึง View Data (หัวใจสำคัญ)
-            // เพิ่ม field 'module_group' หรือที่ใกล้เคียงเผื่อใช้ Cross check
+            // 3. ดึง View Data
             const { data: viewData, error: viewError } = await supabaseClient
                 .from('test_case_report_view')
                 .select('tor_id, test_case_id, scenario_id, module_group'); 
             if (viewError) throw viewError;
-            console.log(`Loaded ${viewData.length} View Rows`);
 
             // --- เริ่มกระบวนการนับ ---
-
-            // Map: TOR_ID -> MODULE_ID
             const torToModuleMap = {};
             const torCountMap = {}; 
 
@@ -54,29 +90,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (t.module_id) {
                     const mid = String(t.module_id);
                     torToModuleMap[t.tor_id] = mid;
-                    
                     if (!torCountMap[mid]) torCountMap[mid] = new Set();
                     torCountMap[mid].add(t.tor_id);
                 }
             });
 
-            // Map: MODULE_ID -> Stats
             const statsMap = new Map();
             
-            // วนลูป View Data เพื่อจัดลงถัง
             viewData.forEach(row => {
                 let mid = null;
-
-                // Priority 1: หาจาก TOR ที่ผูกไว้
                 if (row.tor_id && torToModuleMap[row.tor_id]) {
                     mid = torToModuleMap[row.tor_id];
-                } 
-                // Priority 2: หาจาก module_group ใน view (ถ้ามี และหาจาก TOR ไม่เจอ)
-                else if (row.module_group) {
+                } else if (row.module_group) {
                     mid = String(row.module_group);
                 }
 
-                // ถ้าหา Module ไม่เจอ ข้าม
                 if (!mid) return;
 
                 if (!statsMap.has(mid)) {
@@ -88,15 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (row.scenario_id) entry.scenarios.add(row.scenario_id);
             });
 
-            // Debug Module 01 specifically
-            const mod01Stats = statsMap.get('01');
-            if (mod01Stats) {
-                console.log('--- Debug Module 01 ---');
-                console.log('Test Cases:', mod01Stats.tcs.size);
-                console.log('Scenarios:', mod01Stats.scenarios.size);
-            }
-
-            // 4. ประกอบร่างข้อมูลเข้า Card
             const modulesWithStats = modules.map(mod => {
                 const mid = String(mod.module_id);
                 const stats = statsMap.get(mid) || { tcs: new Set(), scenarios: new Set() };
@@ -118,17 +137,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 3. Rendering (Logic เดิม) ---
+    // --- 3. Rendering ---
     function renderModules(modules) {
         if(!container) return;
         container.innerHTML = '';
         if(loadingState) loadingState.style.display = 'none';
         container.style.display = 'flex';
 
-        const colors = ['#3f6ad8'];
+        const colors = ['#3f6ad8']; // Theme Color
 
         modules.forEach((mod, index) => {
-            const color = colors[index % colors.length];
+            const color = colors[0]; // Use single color or cycle if needed
             
             // Icon Logic
             let iconClass = 'bi-folder';
@@ -138,7 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (name.includes('ส่งออก') || name.includes('export')) iconClass = 'bi-box-arrow-up';
             else if (name.includes('ศุลกากร') || name.includes('customs')) iconClass = 'bi-shield-check';
             else if (name.includes('รถ') || name.includes('ขนส่ง') || name.includes('truck')) iconClass = 'bi-truck';
-            else if (name.includes('ราง') || name.includes('rail')) iconClass = 'bi-train-front';
             else if (name.includes('บริหาร') || name.includes('admin')) iconClass = 'bi-gear-wide-connected';
             else if (name.includes('general') || name.includes('ทั่วไป')) iconClass = 'bi-grid';
 
@@ -146,7 +164,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const tcClass = mod.tcCount > 0 ? '' : 'opacity-50';
             const scClass = mod.scenarioCount > 0 ? '' : 'opacity-50';
 
-            // HTML Structure
             const html = `
                 <div class="col-md-6 col-lg-4 col-xl-3">
                     <div class="folder-card" style="border-left-color: ${color};">
@@ -158,16 +175,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             <i class="bi ${iconClass} module-icon" style="color: ${color};"></i>
                         </div>
 
-                        <div class="stats-container">
-                            <div class="stat-item ${torClass}" onclick="redirectToTorPage('${mod.module_id}')" title="ดู TOR ทั้งหมด">
+                        <div class="stats-container" onclick="redirectToTorPage('${mod.module_id}')" style="cursor: pointer;">
+                            <div class="stat-item ${torClass}" title="ดู TOR ทั้งหมด">
                                 <div class="stat-value" style="color: ${color}">${mod.torCount}</div>
                                 <div class="stat-label">TORs</div>
                             </div>
-                            <div class="stat-item border-start border-end ${tcClass}" onclick="redirectToTorPage('${mod.module_id}')" title="ดู Test Case ทั้งหมด">
+                            <div class="stat-item border-start border-end ${tcClass}" title="ดู Test Case ทั้งหมด">
                                 <div class="stat-value" style="color: ${color}">${mod.tcCount}</div>
                                 <div class="stat-label">Test Cases</div>
                             </div>
-                            <div class="stat-item ${scClass}" onclick="redirectToTorPage('${mod.module_id}')" title="ดู Scenario ทั้งหมด">
+                            <div class="stat-item ${scClass}" title="ดู Scenario ทั้งหมด">
                                 <div class="stat-value" style="color: ${color}">${mod.scenarioCount}</div>
                                 <div class="stat-label">Scenarios</div>
                             </div>
@@ -186,14 +203,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Navigation
+    // --- 4. Navigation (🔥 Redirect with Params) ---
     window.redirectToTorPage = (moduleId) => {
-        const filterState = { module: moduleId, search: '' };
-        sessionStorage.setItem('torwtcFilters', JSON.stringify(filterState));
-        window.location.href = '/stk_torwtc.html';
+        // สร้าง URL Parameters
+        const params = new URLSearchParams();
+        params.append('module', moduleId);
+        
+        if (currentUserGroupId) {
+            params.append('group', currentUserGroupId);
+        } else {
+            console.warn("User has no group assigned, redirecting with module only.");
+        }
+
+        // Redirect แบบ GET Parameter
+        window.location.href = `/stk_torwtc.html?${params.toString()}`;
     };
     
-    // (ฟังก์ชัน exportToExcel ต้องมีอยู่แล้ว หรือถ้าไม่มีก็แปะเพิ่มได้ครับ)
+    // (ฟังก์ชัน exportToExcel ใส่ไว้ด้านล่างเหมือนเดิมได้ครับ)
 
     init();
 });
