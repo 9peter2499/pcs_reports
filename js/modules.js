@@ -199,10 +199,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // =================================================================
-// EXPORT EXCEL MODULE (Place this at the bottom of your script file)
+// EXPORT EXCEL MODULE (FULL VERSION: Draft & Final Modes)
 // =================================================================
 
-// 1. Helper: แปลง HTML เป็น Text (สำหรับล้าง tag <br>, <p> ออก)
+// --- 1. Helper: แปลง HTML เป็น Text (ล้าง Tag) ---
 function formatHtmlToExcel(html) {
     if (!html) return "";
     let text = html.toString()
@@ -216,7 +216,7 @@ function formatHtmlToExcel(html) {
     return (tmp.textContent || tmp.innerText || "").trim();
 }
 
-// 2. Helper: แสดง Loading เต็มหน้าจอ
+// --- 2. Helper: แสดง Loading Overlay ---
 function showLoadingOverlay() {
     let overlay = document.getElementById('excel-loading-overlay');
     if (!overlay) {
@@ -226,24 +226,25 @@ function showLoadingOverlay() {
         overlay.innerHTML = `
             <div class="spinner-border text-light" style="width: 3rem; height: 3rem;" role="status"></div>
             <div style="font-size: 1.5rem; margin-top: 15px; font-weight:bold;">กำลังสร้างไฟล์ Excel...</div>
-            <div style="margin-top: 5px; opacity: 0.8;">กรุณารอสักครู่ ระบบกำลังจัดเตรียมข้อมูล</div>
+            <div style="margin-top: 5px; opacity: 0.8;">ระบบกำลังเตรียมข้อมูลและจัด Format (Version Control Mode)</div>
         `;
         document.body.appendChild(overlay);
     }
     overlay.style.display = 'flex';
 }
 
-// 3. Helper: ซ่อน Loading
+// --- 3. Helper: ซ่อน Loading ---
 function hideLoadingOverlay() {
     const overlay = document.getElementById('excel-loading-overlay');
     if (overlay) overlay.style.display = 'none';
 }
 
-// 4. Main Function: Export to Excel (V6.1 Fix Mapping)
-async function exportToExcel(moduleId) {
+// --- 4. MAIN FUNCTION: Export to Excel ---
+// param: moduleId (Required)
+// param: isFinal (Optional, Default = false) -> true = Final Version (No Edit), false = Draft (Editable)
+async function exportToExcel(moduleId, isFinal = false) {
     if (!moduleId) return alert("ไม่พบ Module ID");
 
-    // เรียกใช้ Helper ที่ประกาศไว้ด้านบน
     showLoadingOverlay();
 
     try {
@@ -251,7 +252,7 @@ async function exportToExcel(moduleId) {
         workbook.creator = 'PCS System';
         workbook.created = new Date();
 
-        // --- MAPPING ชื่อไฟล์ให้ถูกต้อง ---
+        // 4.1 Config ชื่อไฟล์และ Mapping
         const fileNameMapping = {
             '01': 'General', 'M01': 'General', 'M001': 'General',
             '02': 'Vessel', 'M02': 'Vessel', 'M002': 'Vessel',
@@ -269,7 +270,7 @@ async function exportToExcel(moduleId) {
 
         let fileModuleName = fileNameMapping[moduleId] || `Module-${moduleId}`;
 
-        // --- 1. Query TORs ---
+        // 4.2 Query TORs
         const { data: tors, error: torError } = await supabaseClient
             .from('TORs')
             .select('*')
@@ -279,21 +280,94 @@ async function exportToExcel(moduleId) {
         if (torError) throw torError;
         if (!tors || tors.length === 0) throw new Error("ไม่พบข้อมูล TOR ใน Module นี้");
 
-        // --- 2. Loop Create Sheets ---
+        // 4.3 Generate Reference Data (Version Control)
+        // ใช้วันที่ปัจจุบันเป็น Data As Of (ในอนาคตเปลี่ยนเป็น Max Updated_at จาก DB ได้)
+        const dataDate = new Date();
+        const yyyy = dataDate.getFullYear();
+        const mm = String(dataDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(dataDate.getDate()).padStart(2, '0');
+        const hh = String(dataDate.getHours()).padStart(2, '0');
+        const min = String(dataDate.getMinutes()).padStart(2, '0');
+
+        const statusSuffix = isFinal ? "FINAL" : "DRAFT";
+        const refId = `REF-${moduleId}-${yyyy}${mm}${dd}-${hh}${min}-${statusSuffix}`;
+        const dataAsOfStr = `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+
+        // =========================================================
+        // SHEET 1: INSTRUCTION (คำแนะนำ)
+        // =========================================================
+        const sheetInstr = workbook.addWorksheet('READ ME (คำแนะนำ)');
+        sheetInstr.getColumn('A').width = 8;
+        sheetInstr.getColumn('B').width = 90;
+
+        // Title
+        const instrTitle = sheetInstr.getCell('B2');
+        instrTitle.value = isFinal ? 
+            "คำแนะนำ: เอกสารฉบับสมบูรณ์ (Final Version)" : 
+            "คำแนะนำ: การตรวจสอบและแก้ไข Test Case (Draft Version)";
+        instrTitle.font = { size: 16, bold: true, color: { argb: 'FF1F4E78' } }; // น้ำเงินเข้ม
+
+        // Instruction Content
+        let instructions = [];
+        if (isFinal) {
+            instructions = [
+                { title: "1. เอกสารฉบับสมบูรณ์ (Final Version)", detail: "เอกสารนี้เป็นเวอร์ชันสรุปสุดท้ายสำหรับการทดสอบ (Test Execution) ข้อมูลในนี้ถือเป็น Master Data ล่าสุด" },
+                { title: "2. การอ้างอิง (Reference)", detail: `ข้อมูล ณ วันที่: ${dataAsOfStr}\nReference ID: ${refId}\n(กรุณาใช้ Ref ID นี้ในการอ้างอิงเมื่อแจ้งผลการทดสอบ)` },
+                { title: "3. การแก้ไขข้อมูล", detail: "หากต้องการแก้ไขข้อมูลในเอกสารนี้ กรุณาติดต่อ Admin เพื่อทำการปรับปรุงในระบบและ Export เอกสารใหม่ (ห้ามแก้ไขในไฟล์นี้โดยตรง)" }
+            ];
+        } else {
+            instructions = [
+                { title: "1. ห้ามแก้ไขข้อมูลเดิม (Do Not Edit Original Data)", detail: "ข้อมูลในช่องสีเทา (Columns A-E) เป็นข้อมูลตั้งต้นจากระบบ ถูกล็อคไว้ห้ามแก้ไข เพื่อใช้ในการอ้างอิงและป้องกันความผิดพลาดของ ID" },
+                { title: "2. การแจ้งแก้ไข (Modify/Delete)", detail: "หากพบข้อผิดพลาดหรือต้องการแก้ไข ให้เลือกสถานะในช่อง 'Change Status' (Column F) เป็น 'Modify' หรือ 'Delete' แล้วกรอกข้อมูลใหม่ในช่องสีขาวด้านขวา" },
+                { title: "3. การเพิ่ม Test Case ใหม่ (Add New)", detail: "หากต้องการเพิ่ม Test Case ใหม่ ให้เลื่อนลงไปด้านล่างสุดของตาราง จะมีโซน '--- เพิ่มรายการใหม่ (New Items) ---' ท่านสามารถกรอกข้อมูลต่อท้ายได้เลย" },
+                { title: "4. Version Control", detail: `Reference ID: ${refId}\nโปรดตรวจสอบ Ref ID ทุกครั้งก่อนเริ่มทำงาน เพื่อให้มั่นใจว่าเป็นไฟล์เวอร์ชันล่าสุด` },
+                { title: "5. การส่งคืนไฟล์", detail: "เมื่อแก้ไขเสร็จแล้ว ให้บันทึกไฟล์ (Save) แล้วส่งคืนทีมงานโดยไม่ต้องเปลี่ยนชื่อไฟล์" }
+            ];
+        }
+
+        let currentRow = 4;
+        instructions.forEach(inst => {
+            // หัวข้อ (Bold)
+            const cellTitle = sheetInstr.getCell(`B${currentRow}`);
+            cellTitle.value = inst.title;
+            cellTitle.font = { bold: true, size: 12, color: { argb: 'FF000000' } };
+            
+            // รายละเอียด
+            currentRow++;
+            const cellDetail = sheetInstr.getCell(`B${currentRow}`);
+            cellDetail.value = inst.detail;
+            cellDetail.alignment = { wrapText: true, vertical: 'top' };
+            cellDetail.font = { color: { argb: 'FF404040' } }; // เทาเข้ม
+            
+            currentRow += 2; // เว้นบรรทัด
+        });
+
+        // Protect Instruction Sheet (อ่านได้อย่างเดียว)
+        await sheetInstr.protect('pcs1234', { selectLockedCells: true, selectUnlockedCells: true });
+
+
+        // =========================================================
+        // SHEET 2+: TOR SHEETS
+        // =========================================================
         for (const tor of tors) {
-            // Get Detail
+            // Get Detail from TORDetail
             const { data: torDetail } = await supabaseClient
                 .from('TORDetail')
                 .select('tord_header, tord_prototype')
                 .eq('tor_id', tor.tor_id)
                 .maybeSingle();
 
-            // Sheet Name
+            // Set Sheet Name (Safe Chars & Length)
             let sheetName = tor.tor_name ? tor.tor_name.split(' ')[0] : tor.tor_id;
             sheetName = sheetName.replace(/[\/\\\?\*\[\]]/g, '_').substring(0, 31);
+            
+            // กันชื่อซ้ำ
+            if (workbook.getWorksheet(sheetName)) {
+                sheetName = sheetName.substring(0, 28) + "_" + tor.tor_id.slice(-2);
+            }
             const worksheet = workbook.addWorksheet(sheetName);
 
-            // Get Test Cases
+            // Get Test Case Data
             let { data: testData } = await supabaseClient
                 .from('tor_test_case_links')
                 .select(`
@@ -309,138 +383,231 @@ async function exportToExcel(moduleId) {
             
             // Sort Data
             if (testData) {
-                testData.sort((a, b) => {
-                    const moduleNameA = a.test_cases?.pcs_module?.name || "";
-                    const moduleNameB = b.test_cases?.pcs_module?.name || "";
-                    if (moduleNameA < moduleNameB) return -1;
-                    if (moduleNameA > moduleNameB) return 1;
-                    return (a.test_cases?.test_id_code || "").localeCompare(b.test_cases?.test_id_code || "");
-                });
+                testData.sort((a, b) => (a.test_cases?.test_id_code || "").localeCompare(b.test_cases?.test_id_code || ""));
             }
 
-            // Prepare Header Info
-            let pcsModuleName = "Unknown - Unknown";
+            // Prepare Header Variables
+            let pcsModuleName = "Unknown";
             if (testData && testData.length > 0 && testData[0].test_cases?.pcs_module?.name) {
                 pcsModuleName = testData[0].test_cases.pcs_module.name;
             }
 
             const nameParts = pcsModuleName.split('-');
-            let moduleNameHeader = "-";
-            let functionNameHeader = "-";
+            let moduleNameHeader = pcsModuleName.startsWith("Co-Service") ? "Co-Service" : (nameParts[0]?.trim() || "-");
+            let functionNameHeader = nameParts.length > 1 ? nameParts[nameParts.length - 1].trim() : "-";
 
-            if (pcsModuleName.startsWith("Co-Service")) {
-                moduleNameHeader = "Co-Service";
-                if (nameParts.length > 2) functionNameHeader = nameParts.slice(2).join('-').trim();
+            // --- 4.4 Set Columns Width ---
+            if (isFinal) {
+                // Final: A-G (No Edit Columns)
+                worksheet.columns = [
+                    { width: 35 }, { width: 45 }, { width: 8 }, 
+                    { width: 45 }, { width: 45 }, { width: 15 }, { width: 30 }
+                ];
             } else {
-                moduleNameHeader = nameParts[0] ? nameParts[0].trim() : "-";
-                functionNameHeader = nameParts.length > 1 ? nameParts[nameParts.length - 1].trim() : "-";
+                // Draft: A-J (With Edit Columns)
+                worksheet.columns = [
+                    { width: 35 }, { width: 45 }, { width: 8 }, 
+                    { width: 45 }, { width: 45 }, // A-E: Original
+                    { width: 15 }, { width: 45 }, { width: 45 }, // F-H: Edit Zone
+                    { width: 15 }, { width: 30 }  // I-J: Result/Remark
+                ];
             }
 
-            // Set Columns
-            worksheet.getColumn('A').width = 35; worksheet.getColumn('B').width = 50; 
-            worksheet.getColumn('C').width = 15; worksheet.getColumn('D').width = 50; 
-            worksheet.getColumn('E').width = 50; worksheet.getColumn(6).width = 8;
-            worksheet.getColumn(7).width = 8; worksheet.getColumn(8).width = 10;
-            worksheet.getColumn(9).width = 15; worksheet.getColumn(10).width = 30;
-
-            // Write Headers
+            // --- 4.5 Header Rows (Rows 1-6) ---
             const headerRows = [
-                ['Project Name :', 'Port Community System, PORT Authority of Thailand'],
-                ['Application Name :', 'Port Community System'],
+                ['Project Name :', 'Port Community System'],
                 ['Module :', moduleNameHeader], 
                 ['Function :', functionNameHeader],
-                ['Path :', pcsModuleName]
+                ['Path :', pcsModuleName],
+                ['Data As Of :', dataAsOfStr], // Row 5
+                ['Reference ID :', refId]      // Row 6
             ];
 
             headerRows.forEach((data, index) => {
                 const row = worksheet.getRow(index + 1);
-                row.getCell(1).value = data[0]; row.getCell(2).value = data[1];
+                row.getCell(1).value = data[0]; 
+                row.getCell(2).value = data[1];
+                
+                // Style: Label Column
                 const cellA = row.getCell(1);
                 cellA.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-                cellA.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } };
+                cellA.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } }; // น้ำเงิน
                 cellA.alignment = { vertical: 'top' };
                 row.getCell(2).alignment = { vertical: 'top', wrapText: true };
+
+                // 🔥 Special Style for Date & Ref ID (Row 5 & 6)
+                if (index === 4 || index === 5) {
+                    // Label แดง
+                    cellA.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC00000' } }; // แดงเข้ม
+                    // Value แดง ตัวใหญ่
+                    const cellB = row.getCell(2);
+                    cellB.font = { size: 12, bold: true, color: { argb: 'FFC00000' } };
+                    cellB.border = { bottom: {style:'double', color: {argb:'FFC00000'}} };
+                }
             });
 
-            // Write Detail Row (Row 6)
-            const row6 = worksheet.getRow(6);
-            row6.getCell(1).value = 'Test ID/NAME :';
-            row6.getCell(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-            row6.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } };
-            row6.getCell(1).alignment = { vertical: 'top' };
+            // --- 4.6 TOR Detail Row (Row 7) ---
+            const row7 = worksheet.getRow(7);
             
-            row6.getCell(2).value = tor.tor_name || "-";
-            row6.getCell(2).alignment = { vertical: 'top', wrapText: true };
-            
-            row6.getCell(3).value = "สัมพันธ์กับ";
-            row6.getCell(3).font = { bold: true };
-            row6.getCell(3).alignment = { vertical: 'top', horizontal: 'center' };
-            
-            row6.getCell(4).value = { richText: [{ text: 'Detail Design\n', font: { bold: true } }, { text: formatHtmlToExcel(torDetail?.tord_header) }] };
-            row6.getCell(4).alignment = { vertical: 'top', wrapText: true };
-            
-            row6.getCell(5).value = { richText: [{ text: 'Prototype\n', font: { bold: true } }, { text: formatHtmlToExcel(torDetail?.tord_prototype) }] };
-            row6.getCell(5).alignment = { vertical: 'top', wrapText: true };
+            // Cell 1: Label
+            row7.getCell(1).value = 'Test ID/NAME :';
+            row7.getCell(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            row7.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } };
+            row7.getCell(1).alignment = { vertical: 'top' };
 
-            // Table Header (Row 8)
-            const headerRow = worksheet.addRow(['Test Case Name', 'Test Case Function', 'Test Step #', 'Action', 'Expected Result', 'Pass', 'Fail', 'Not Run', 'Test By', 'Remark / Fail Detail']);
-            headerRow.eachCell((cell) => {
+            // Cell 2: TOR Name
+            row7.getCell(2).value = tor.tor_name || "-";
+            row7.getCell(2).alignment = { vertical: 'top', wrapText: true };
+
+            // Cell 3: Relate
+            row7.getCell(3).value = "Design/Proto";
+            row7.getCell(3).font = { bold: true };
+            row7.getCell(3).alignment = { vertical: 'top', horizontal: 'center' };
+
+            // Cell 4: Detail Design
+            row7.getCell(4).value = { richText: [{ text: 'Detail\n', font: { bold: true } }, { text: formatHtmlToExcel(torDetail?.tord_header) }] };
+            row7.getCell(4).alignment = { vertical: 'top', wrapText: true };
+
+            // Cell 5: Prototype
+            row7.getCell(5).value = { richText: [{ text: 'Proto\n', font: { bold: true } }, { text: formatHtmlToExcel(torDetail?.tord_prototype) }] };
+            row7.getCell(5).alignment = { vertical: 'top', wrapText: true };
+
+
+            // --- 4.7 Table Header (Row 9) ---
+            const tableHeadRow = worksheet.getRow(9);
+            let headers = [];
+            
+            if (isFinal) {
+                headers = ['Test Case Name', 'Function / Scenario', 'Step', 'Action', 'Expected Result', 'Pass/Fail', 'Remark'];
+            } else {
+                headers = ['Test Case Name', 'Function / Scenario', 'Step', 'Original Action', 'Original Expected', 'Change Status', 'New Action', 'New Expected', 'Result', 'Remark'];
+            }
+            tableHeadRow.values = headers;
+            
+            tableHeadRow.eachCell((cell, colNum) => {
                 cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } };
                 cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+                
+                // Draft Mode: Highlight Edit Zone Columns (F, G, H)
+                if (!isFinal && colNum >= 6 && colNum <= 8) {
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFED7D31' } }; // สีส้ม
+                }
             });
 
-            // Write Data
+
+            // --- 4.8 Data Rows ---
             if (testData) {
                 testData.forEach(link => {
                     const tc = link.test_cases;
                     if (!tc || !tc.scenarios) return;
+                    
+                    // Sort Scenarios inside TC
                     tc.scenarios.sort((a, b) => (a.scenario_id_code || "").localeCompare(b.scenario_id_code || ""));
 
-                    let isFirstScenario = true;
+                    let isFirst = true;
                     tc.scenarios.forEach((sc, idx) => {
                         const row = worksheet.addRow([]);
-                        if (isFirstScenario) {
-                            const moduleNameTitle = tc.pcs_module?.name || "-"; 
-                            row.getCell(1).value = { richText: [{ text: moduleNameTitle + '\n', font: { bold: true } }, { text: (tc.test_id_code || "") + ' :\n', font: { bold: true } }, { text: (tc.name || ""), font: { bold: false } }] };
-                        }
                         
-                        let sessionPrefix = "";
-                        const scCode = (sc.scenario_id_code || "").trim();
-                        if (scCode.startsWith("ST")) sessionPrefix = "SIT Session\n";
-                        else if (scCode.startsWith("UT")) sessionPrefix = "UAT Session\n";
+                        // Col A: Test Case Name (Merge logic visually)
+                        if (isFirst) {
+                            row.getCell(1).value = { richText: [{ text: (tc.test_id_code||"")+' :\n', font:{bold:true}}, { text: tc.name||"" }] };
+                        }
 
-                        row.getCell(2).value = { richText: [{ text: sessionPrefix, font: { bold: true } }, { text: scCode + ' :\n', font: { bold: true } }, { text: (sc.name || ""), font: { bold: false } }] };
+                        // Col B: Scenario
+                        const scCode = (sc.scenario_id_code||"").trim();
+                        const sessionPrefix = scCode.startsWith("ST") ? "SIT Session\n" : (scCode.startsWith("UT") ? "UAT Session\n" : "");
+                        row.getCell(2).value = { richText: [{ text: sessionPrefix, font:{bold:true}}, { text: scCode+' :\n', font:{bold:true}}, { text: sc.name||"" }] };
+                        
+                        // Col C: Step
                         row.getCell(3).value = idx + 1;
+                        
+                        // Col D-E: Original Data
                         row.getCell(4).value = formatHtmlToExcel(sc.action);
                         row.getCell(5).value = formatHtmlToExcel(sc.expected_result);
-                        row.getCell(10).value = formatHtmlToExcel(sc.information);
 
-                        row.eachCell({ includeEmpty: true }, (cell, colNum) => {
-                            if (colNum > 10) return;
-                            cell.alignment = { vertical: 'top', wrapText: true };
+                        if (isFinal) {
+                            // Final Mode
+                            // Col F: Pass/Fail (Blank for checking)
+                            // Col G: Remark
+                            row.getCell(7).value = formatHtmlToExcel(sc.information);
+                        } else {
+                            // Draft Mode
+                            // Col F: Status Dropdown
+                            const statusCell = row.getCell(6);
+                            statusCell.value = 'Keep';
+                            statusCell.dataValidation = { type: 'list', allowBlank: false, formulae: ['"Keep,Modify,Delete"'] };
+                            statusCell.alignment = { horizontal: 'center', vertical: 'top' };
+                            
+                            // Col J: Remark
+                            row.getCell(10).value = formatHtmlToExcel(sc.information);
+
+                            // Protection Logic & Coloring
+                            row.eachCell((cell, colNum) => {
+                                if (colNum >= 6 && colNum <= 8) {
+                                    cell.protection = { locked: false }; // Unlock Edit Zone
+                                    if(colNum === 6) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE699' } }; // เหลืองอ่อน
+                                } else if (colNum <= 5) {
+                                    // Original Zone Locked
+                                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } }; // เทาอ่อน
+                                }
+                            });
+                        }
+
+                        // Common Styles
+                        row.eachCell((cell) => {
+                            cell.alignment = { ...cell.alignment, vertical: 'top', wrapText: true };
                             cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-                            if ([3, 6, 7, 8].includes(colNum)) cell.alignment = { vertical: 'top', horizontal: 'center' };
                         });
-                        isFirstScenario = false;
+
+                        isFirst = false;
                     });
                 });
             }
+
+            // --- 4.9 Add New Items Zone (Draft Only) ---
+            if (!isFinal) {
+                worksheet.addRow([]);
+                const newHeader = worksheet.addRow(['--- เพิ่มรายการใหม่ (New Items) ---']);
+                newHeader.getCell(1).font = { bold: true, color: { argb: 'FF006100' } }; // เขียวเข้ม
+                newHeader.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } }; // เขียวอ่อน
+                worksheet.mergeCells(`A${newHeader.number}:J${newHeader.number}`);
+                
+                // Add 10 Empty Rows
+                for(let i=0; i<10; i++) {
+                    const r = worksheet.addRow([]);
+                    r.getCell(6).value = 'New';
+                    r.getCell(6).font = { bold: true, color: { argb: 'FF006100' } };
+                    
+                    r.eachCell({includeEmpty:true}, cell => {
+                        cell.protection = { locked: false }; // Unlock ทั้งแถว
+                        cell.border = { top:{style:'dotted'}, left:{style:'dotted'}, bottom:{style:'dotted'}, right:{style:'dotted'} };
+                    });
+                }
+            }
+
+            // --- 4.10 Protect Sheet ---
+            // Password: pcs1234
+            await worksheet.protect('pcs1234', { 
+                selectLockedCells: true, 
+                selectUnlockedCells: true, 
+                formatCells: true, 
+                formatColumns: true 
+            });
         }
 
-        // --- Download ---
-        const now = new Date();
-        const timestamp = now.toISOString().replace(/[-:T]/g, '').slice(0, 12);
-        const safeModuleName = fileModuleName.replace(/[^a-zA-Z0-9]/g, ''); 
-        const fileName = `Test Case-${safeModuleName}-${timestamp}.xlsx`;
-
+        // --- 5. Download File ---
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        
+        // Naming: TC_Module_FINAL_YYMMDD.xlsx
+        const fileName = `TC_${fileModuleName}_${statusSuffix}_${dataAsOfStr.replace(/[\/ :]/g,'')}.xlsx`;
         saveAs(blob, fileName);
 
     } catch (err) {
         console.error('Export Error:', err);
-        alert('เกิดข้อผิดพลาด: ' + err.message);
+        alert('เกิดข้อผิดพลาดในการ Export: ' + err.message);
     } finally {
         hideLoadingOverlay();
     }
