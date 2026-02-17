@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const { data, error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                redirectTo: 'http://localhost:5500/check_profile.html' 
+                redirectTo: window.location.origin + '/check_profile.html' 
             }
             });
 
